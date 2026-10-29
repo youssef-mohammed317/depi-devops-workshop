@@ -92,3 +92,18 @@ The Compose file sets a restart policy (`unless-stopped`), maps port 5001 to 500
 - Open a Pull Request for every change. A PR template is filled in automatically.
 - Run the tests before opening the PR.
 - The `main` branch is protected, so direct pushes are blocked.
+
+## Terraform (AWS EC2)
+
+Creates an Ubuntu EC2 server, a security group (SSH and app port open to my IP only) and prints the public IP.
+
+```bash
+cd infra/environments/dev
+terraform init
+terraform fmt -recursive
+terraform validate
+terraform plan
+terraform apply
+```
+
+Set `key_name` and `my_ip` in `terraform.tfvars` first. Clean up with `terraform destroy`.
