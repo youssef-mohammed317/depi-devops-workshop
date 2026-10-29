@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.git
+.github
+.gitignore
+.vscode
+ansible/
+infra/
+tests/
+README.md
