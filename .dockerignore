@@ -9,3 +9,6 @@ ansible/
 infra/
 tests/
 README.md
+.env
+.env.*
+*.pem

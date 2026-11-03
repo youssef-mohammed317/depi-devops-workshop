@@ -6,3 +6,6 @@ __pycache__/
 *.tfstate.*
 *.pem
 terraform.tfvars
+.env
+.env.*
+!.env.example
