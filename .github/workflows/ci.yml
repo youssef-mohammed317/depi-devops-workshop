@@ -3,14 +3,16 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
 jobs:
   test-and-scan:
+    name: Test and analyze
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
 
@@ -24,3 +26,10 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests/
+
+      - name: SonarQube scan
+        if: github.event_name == 'push'
+        uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
