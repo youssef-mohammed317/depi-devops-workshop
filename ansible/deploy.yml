@@ -1,0 +1,72 @@
+- name: Deploy app to EC2
+  hosts: all
+  become: true
+
+  vars:
+    deploy_dir: /opt/app
+    app_port: 5000
+    image_name: "{{ lookup('env', 'IMAGE_NAME') }}"
+    image_tag: "{{ lookup('env', 'IMAGE_TAG') }}"
+
+  tasks:
+    - name: Make sure the deployment directory exists
+      ansible.builtin.file:
+        path: "{{ deploy_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Log in to GHCR
+      ansible.builtin.shell: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+      environment:
+        GHCR_USER: "{{ lookup('env', 'GHCR_USER') }}"
+        GHCR_TOKEN: "{{ lookup('env', 'GHCR_TOKEN') }}"
+      no_log: true
+      changed_when: false
+
+    - name: Write docker-compose.yml with the SHA-tagged image
+      ansible.builtin.copy:
+        dest: "{{ deploy_dir }}/docker-compose.yml"
+        mode: "0644"
+        content: |
+          services:
+            web:
+              image: {{ image_name }}:{{ image_tag }}
+              ports:
+                - "{{ app_port }}:5000"
+              restart: unless-stopped
+
+    - name: Pull the new image
+      ansible.builtin.command: docker compose pull
+      args:
+        chdir: "{{ deploy_dir }}"
+
+    - name: Recreate the service
+      ansible.builtin.command: docker compose up -d --remove-orphans
+      args:
+        chdir: "{{ deploy_dir }}"
+
+    - name: Verify the deployment
+      block:
+        - name: Smoke test, call the health endpoint
+          ansible.builtin.uri:
+            url: "http://localhost:{{ app_port }}/health"
+            status_code: 200
+          register: health
+          retries: 10
+          delay: 3
+          until: health.status == 200
+
+      rescue:
+        - name: Collect container logs
+          ansible.builtin.command: docker compose logs --tail 50
+          args:
+            chdir: "{{ deploy_dir }}"
+          register: container_logs
+
+        - name: Show the logs
+          ansible.builtin.debug:
+            msg: "{{ container_logs.stdout_lines }}"
+
+        - name: Fail the deployment
+          ansible.builtin.fail:
+            msg: "Smoke test failed. See the container logs above."

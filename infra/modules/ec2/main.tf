@@ -14,6 +14,14 @@ resource "aws_security_group" "sg" {
   name = "${var.name}-sg"
 
   ingress {
+    description = "SSH (key only, lab only)"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
     description = "SSH from my IP"
     from_port   = 22
     to_port     = 22
