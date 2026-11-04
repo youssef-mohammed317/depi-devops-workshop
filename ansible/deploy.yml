@@ -5,8 +5,11 @@
   vars:
     deploy_dir: /opt/app
     app_port: 5000
+    break_health: "0"
     image_name: "{{ lookup('env', 'IMAGE_NAME') }}"
     image_tag: "{{ lookup('env', 'IMAGE_TAG') }}"
+    ghcr_user: "{{ lookup('env', 'GHCR_USER') }}"
+    ghcr_token: "{{ lookup('env', 'GHCR_TOKEN') }}"
 
   tasks:
     - name: Make sure the deployment directory exists
@@ -15,11 +18,12 @@
         state: directory
         mode: "0755"
 
-    - name: Log in to GHCR
+    - name: Log in to GHCR (only when a token is provided)
       ansible.builtin.shell: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
       environment:
-        GHCR_USER: "{{ lookup('env', 'GHCR_USER') }}"
-        GHCR_TOKEN: "{{ lookup('env', 'GHCR_TOKEN') }}"
+        GHCR_USER: "{{ ghcr_user }}"
+        GHCR_TOKEN: "{{ ghcr_token }}"
+      when: ghcr_token | length > 0
       no_log: true
       changed_when: false
 
@@ -32,8 +36,17 @@
             web:
               image: {{ image_name }}:{{ image_tag }}
               ports:
-                - "{{ app_port }}:5000"
+                - "127.0.0.1:{{ app_port }}:5000"
               restart: unless-stopped
+              read_only: true
+              tmpfs:
+                - /tmp
+              cap_drop:
+                - ALL
+              security_opt:
+                - no-new-privileges:true
+              environment:
+                BREAK_HEALTH: "{{ break_health }}"
 
     - name: Pull the new image
       ansible.builtin.command: docker compose pull
