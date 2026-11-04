@@ -9,3 +9,8 @@ terraform.tfvars
 .env
 .env.*
 !.env.example
+
+*.pyc
+.venv/
+.vscode/
+crash.log
