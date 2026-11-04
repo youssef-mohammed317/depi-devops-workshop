@@ -166,6 +166,28 @@ The SHA tag is immutable, so deployments use it. `latest` is only a convenience.
 docker pull ghcr.io/youssef-mohammed317/depi-devops-workshop:<sha7>
 ```
 
+## Deploy to EC2
+
+After the image is published, the `deploy` job runs `ansible/deploy.yml` on the server over SSH:
+
+1. Logs in to GHCR on the server.
+2. Writes a `docker-compose.yml` that uses the SHA-tagged image.
+3. Runs `docker compose pull` and `docker compose up -d`.
+4. Calls `/health` on the server (smoke test). If it fails, the job prints the container logs and fails.
+
+**Repository secrets**
+
+| Secret | Value |
+|---|---|
+| `SONAR_TOKEN` | SonarQube token |
+| `SONAR_HOST_URL` | URL of the SonarQube server |
+| `EC2_HOST` | Public IP of the EC2 server |
+| `EC2_SSH_KEY` | Contents of the private key (`.pem`) |
+
+The registry credential is the automatic `GITHUB_TOKEN`, so no extra secret is needed.
+
+**Production note:** a long-lived SSH key and an open SSH port are only acceptable for this workshop. In production, use OIDC (short-lived credentials, no stored keys) with AWS Systems Manager (SSM), so port 22 can stay closed.
+
 ## Contributing
 
 - Open a Pull Request for every change. A PR template is filled in automatically.
